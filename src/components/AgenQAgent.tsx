@@ -2,18 +2,22 @@
 
 import Script from "next/script";
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 export function AgenQAgent() {
   const mounted = useRef(false);
+  const pathname = usePathname();
 
   useEffect(() => {
+    if (pathname === "/login") return;
+
     const timer = window.setInterval(() => {
       if (!(window as any).AGENQ?.render || mounted.current) return;
       mounted.current = true;
       (window as any).AGENQ.render({
-        agentId: "30453a9e-9ca6-483b-ae48-a6634a99f808",
-        projectId: "ae9fede9-fb4b-4fe4-907a-05fd1e8e5b95",
-        customerCode: "AGENQ-3",
+        agentId: "2b69b018-c154-4547-8a36-80e01ce62fa4",
+        projectId: "364626e9-82d3-4d31-b994-439d77a29f31",
+        customerCode: "SUPER-USER",
         backendProtocol: "backend-v2",
         apiBaseUrl: "https://general-backend.aws.agenq.com",
         authEndpoint: "/api/agenq/token",
@@ -21,7 +25,9 @@ export function AgenQAgent() {
     }, 150);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [pathname]);
+
+  if (pathname === "/login") return null;
 
   return (
     <>

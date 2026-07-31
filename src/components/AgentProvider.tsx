@@ -1,12 +1,12 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Agent from "./Agent";
+import { AgenQAgent } from "./AgenQAgent";
 
 export default function AgentProvider() {
   const pathname = usePathname();
 
   if (pathname === "/login") return null;
 
-  return <Agent />;
+  return <AgenQAgent />;
 }
