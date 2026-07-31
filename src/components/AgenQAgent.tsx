@@ -56,18 +56,40 @@ export function AgenQAgent() {
 }
 
 /**
- * Call this to programmatically OPEN the AgenQ widget.
- * Re-calls AGENQ.render() with initialState: "OPEN" which triggers
- * the SDK's internal useEffect to expand the widget.
+ * Programmatically open the AgenQ widget by clicking its own launcher button.
+ * The AgenQ SDK renders a fixed-position launcher with agenq-id attributes.
+ * Clicking that button is identical to the user clicking the agent image.
  */
 export function triggerAgenQOpen() {
-  const agenq = (window as any).AGENQ;
-  if (agenq && typeof agenq.render === "function") {
-    // Clear localStorage OPEN state first, then set via render
-    try { localStorage.setItem(AGENQ_MOUNT_KEY, "OPEN"); } catch (_) {}
-    agenq.render({
-      ...AGENQ_CONFIG,
-      initialState: "OPEN",
-    } as any);
+  // The AgenQ SDK renders its launcher as a fixed-position element with agenq-id attribute.
+  // Find it and click it — same as the user clicking the agent image manually.
+
+  // 1. Look for fixed/absolute positioned elements with agenq-id (the floating launcher)
+  const agenqEls = Array.from(document.querySelectorAll<HTMLElement>("[agenq-id]"));
+
+  // Try fixed-position elements first (the floating launcher button)
+  for (const el of agenqEls) {
+    const style = window.getComputedStyle(el);
+    if (style.position === "fixed" || style.position === "absolute") {
+      el.click();
+      return;
+    }
+  }
+
+  // 2. Try any element with agenq-id (broader fallback)
+  if (agenqEls.length > 0) {
+    agenqEls[0].click();
+    return;
+  }
+
+  // 3. Try buttons or clickable elements inside #agenq-root
+  const root = document.getElementById("agenq-root");
+  if (root) {
+    const btn = root.querySelector<HTMLElement>("button, [role='button'], img, div[tabindex]");
+    if (btn) { btn.click(); return; }
+    if (root.firstElementChild) {
+      (root.firstElementChild as HTMLElement).click();
+    }
   }
 }
+
