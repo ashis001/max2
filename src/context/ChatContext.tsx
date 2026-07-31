@@ -3,45 +3,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { stopSpeech, setGlobalMuteState } from "@/lib/google-tts";
 
-// The AgenQ SDK agent ID — must match what's passed to AGENQ.render()
-const AGENQ_AGENT_ID = "2b69b018-c154-4547-8a36-80e01ce62fa4";
-// AgenQ SDK stores mount state as "agent-mount-state-{agentId}" in localStorage
-const AGENQ_MOUNT_KEY = `agent-mount-state-${AGENQ_AGENT_ID}`;
+import { triggerAgenQOpen } from "@/components/AgenQAgent";
 
-// Helper to open the real AgenQ SDK widget
+// openAgenQWidget — called by every "Ask Nina" button and toggleChat in the app.
+// Delegates to triggerAgenQOpen which re-calls AGENQ.render() with initialState:"OPEN"
 export function openAgenQWidget() {
-    // 1. Set localStorage to "OPEN" — the SDK reads this in its useEffect
-    try {
-        localStorage.setItem(AGENQ_MOUNT_KEY, "OPEN");
-        // Dispatch a storage event so the SDK's useEffect in other components picks it up
-        window.dispatchEvent(new StorageEvent("storage", {
-            key: AGENQ_MOUNT_KEY,
-            newValue: "OPEN",
-            storageArea: localStorage,
-        }));
-    } catch (e) {
-        console.warn("AgenQ: failed to set localStorage", e);
-    }
-
-    // 2. Also try programmatic API (if SDK exposes it in future)
-    const agenq = (window as any).AGENQ;
-    if (agenq && typeof agenq.open === "function") { agenq.open(); return; }
-    if (agenq && typeof agenq.show === "function") { agenq.show(); return; }
-    if (agenq && typeof agenq.toggle === "function") { agenq.toggle(); return; }
-
-    // 3. Fallback: click the AgenQ launcher button in the DOM
-    // The SDK renders its launcher with agenq-id attributes on elements
-    const selectors = [
-        "[agenq-id] button",
-        "[agenq-id]",
-        "#agenq-root button",
-        "#agenq-root > *",
-    ];
-    for (const sel of selectors) {
-        const el = document.querySelector<HTMLElement>(sel);
-        if (el) { el.click(); return; }
-    }
+    triggerAgenQOpen();
 }
+
 
 
 
