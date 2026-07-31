@@ -58,7 +58,7 @@ export function AgenQAgent() {
 /**
  * Programmatically open the AgenQ widget by finding and clicking its launcher button.
  * Uses a heuristic scoring search to locate the launcher (even inside Shadow DOM)
- * and clicks it, reproducing the exact behavior of clicking the agent circle widget.
+ * and clicks the actual interactive target (checkbox, label, image, or button) inside it.
  */
 export function triggerAgenQOpen() {
   console.log("🚀 triggerAgenQOpen called. Searching for AgenQ launcher element...");
@@ -159,30 +159,54 @@ export function triggerAgenQOpen() {
   // Sort candidates by score descending
   candidates.sort((a, b) => b.score - a.score);
 
+  // Helper to search deep inside a node (including shadow DOM) for specific tags
+  function querySelectorAllDeep(root: Node, selector: string): HTMLElement[] {
+    const elements: HTMLElement[] = [];
+    function search(node: Node) {
+      if (node instanceof HTMLElement && node.matches(selector)) {
+        elements.push(node);
+      }
+      if (node instanceof HTMLElement || node instanceof Document || node instanceof ShadowRoot) {
+        const children = node.childNodes;
+        for (let i = 0; i < children.length; i++) {
+          search(children[i]);
+        }
+        if (node instanceof HTMLElement && node.shadowRoot) {
+          search(node.shadowRoot);
+        }
+      }
+    }
+    search(root);
+    return elements;
+  }
+
   if (candidates.length > 0) {
     const best = candidates[0];
     console.log("🎯 Best candidate found with score", best.score, ":", best.element);
 
-    // If the match is a child element (like an image), traverse up to 4 levels to find its button parent
-    let clickTarget = best.element;
-    let parent = best.element.parentElement;
-    let depth = 0;
-    while (parent && depth < 4 && parent !== document.body) {
-      const parentStyle = window.getComputedStyle(parent);
-      if (
-        parent.tagName === "BUTTON" ||
-        parent.getAttribute("role") === "button" ||
-        parent.onclick ||
-        parentStyle.cursor === "pointer"
-      ) {
-        clickTarget = parent;
-        break;
-      }
-      parent = parent.parentElement;
-      depth++;
+    // Deep search inside the candidate for actual interactive targets
+    const inputs = querySelectorAllDeep(best.element, "input[type='checkbox'], input[type='radio']");
+    const labels = querySelectorAllDeep(best.element, "label");
+    const imgs = querySelectorAllDeep(best.element, "img");
+    const btns = querySelectorAllDeep(best.element, "button, [role='button']");
+
+    let clickTarget: HTMLElement = best.element;
+
+    if (inputs.length > 0) {
+      clickTarget = inputs[0];
+      console.log("🎯 Found input checkbox/radio target:", clickTarget);
+    } else if (labels.length > 0) {
+      clickTarget = labels[0];
+      console.log("🎯 Found label target:", clickTarget);
+    } else if (imgs.length > 0) {
+      clickTarget = imgs[0];
+      console.log("🎯 Found img target:", clickTarget);
+    } else if (btns.length > 0) {
+      clickTarget = btns[0];
+      console.log("🎯 Found button target:", clickTarget);
     }
 
-    console.log("👆 Dispatching click to:", clickTarget);
+    console.log("👆 Clicking element:", clickTarget);
     clickTarget.click();
     clickTarget.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     return;
