@@ -56,40 +56,154 @@ export function AgenQAgent() {
 }
 
 /**
- * Programmatically open the AgenQ widget by clicking its own launcher button.
- * The AgenQ SDK renders a fixed-position launcher with agenq-id attributes.
- * Clicking that button is identical to the user clicking the agent image.
+ * Programmatically open the AgenQ widget by finding and clicking its launcher button.
+ * Uses a heuristic scoring search to locate the launcher (even inside Shadow DOM)
+ * and clicks it, reproducing the exact behavior of clicking the agent circle widget.
  */
 export function triggerAgenQOpen() {
-  // The AgenQ SDK renders its launcher as a fixed-position element with agenq-id attribute.
-  // Find it and click it — same as the user clicking the agent image manually.
+  console.log("🚀 triggerAgenQOpen called. Searching for AgenQ launcher element...");
 
-  // 1. Look for fixed/absolute positioned elements with agenq-id (the floating launcher)
-  const agenqEls = Array.from(document.querySelectorAll<HTMLElement>("[agenq-id]"));
+  interface Candidate {
+    element: HTMLElement;
+    score: number;
+  }
 
-  // Try fixed-position elements first (the floating launcher button)
-  for (const el of agenqEls) {
-    const style = window.getComputedStyle(el);
-    if (style.position === "fixed" || style.position === "absolute") {
-      el.click();
-      return;
+  const candidates: Candidate[] = [];
+
+  function evaluateElement(el: HTMLElement) {
+    let score = 0;
+
+    // 1. Position and geometry analysis
+    try {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+
+      if (style.position === "fixed" || style.position === "absolute") {
+        // Floating launcher is at the bottom right
+        const isBottomRight = rect.bottom > window.innerHeight - 200 && rect.right > window.innerWidth - 200;
+        const isSmallBubble = rect.width >= 30 && rect.width <= 120 && rect.height >= 30 && rect.height <= 120;
+
+        if (isBottomRight) {
+          score += 50;
+        }
+        if (isSmallBubble) {
+          score += 30;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Avatar/image verification
+    if (el.tagName === "IMG") {
+      const src = (el as HTMLImageElement).src || "";
+      if (src.includes("nina") || src.includes("cloye") || src.includes("agent")) {
+        score += 60;
+      }
+    }
+
+    // 3. Class, ID, and attribute matching
+    const id = el.id || "";
+    const className = typeof el.className === "string" ? el.className : "";
+    const hasAgenqAttr = Array.from(el.attributes).some(attr =>
+      attr.name.includes("agenq") || attr.value.includes("agenq")
+    );
+
+    if (id.includes("agenq") || className.includes("agenq") || hasAgenqAttr) {
+      score += 40;
+    }
+
+    // 4. Parenting check
+    let parent = el.parentElement;
+    let isInsideAgenqRoot = false;
+    while (parent) {
+      if (parent.id === "agenq-root") {
+        isInsideAgenqRoot = true;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+    if (isInsideAgenqRoot) {
+      score += 30;
+    }
+
+    // 5. Clickable tag bonus
+    if (el.tagName === "BUTTON" || el.getAttribute("role") === "button" || el.onclick) {
+      score += 20;
+    }
+
+    if (score > 0) {
+      candidates.push({ element: el, score });
     }
   }
 
-  // 2. Try any element with agenq-id (broader fallback)
-  if (agenqEls.length > 0) {
-    agenqEls[0].click();
+  // Recursive traversal of light DOM and shadow roots
+  function traverse(node: Node) {
+    if (node instanceof HTMLElement) {
+      evaluateElement(node);
+    }
+
+    if (node instanceof HTMLElement || node instanceof Document || node instanceof ShadowRoot) {
+      const children = node.childNodes;
+      for (let i = 0; i < children.length; i++) {
+        traverse(children[i]);
+      }
+
+      if (node instanceof HTMLElement && node.shadowRoot) {
+        traverse(node.shadowRoot);
+      }
+    }
+  }
+
+  // Search the entire document starting from the body
+  traverse(document.body);
+
+  // Sort candidates by score descending
+  candidates.sort((a, b) => b.score - a.score);
+
+  if (candidates.length > 0) {
+    const best = candidates[0];
+    console.log("🎯 Best candidate found with score", best.score, ":", best.element);
+
+    // If the match is a child element (like an image), traverse up to 4 levels to find its button parent
+    let clickTarget = best.element;
+    let parent = best.element.parentElement;
+    let depth = 0;
+    while (parent && depth < 4 && parent !== document.body) {
+      const parentStyle = window.getComputedStyle(parent);
+      if (
+        parent.tagName === "BUTTON" ||
+        parent.getAttribute("role") === "button" ||
+        parent.onclick ||
+        parentStyle.cursor === "pointer"
+      ) {
+        clickTarget = parent;
+        break;
+      }
+      parent = parent.parentElement;
+      depth++;
+    }
+
+    console.log("👆 Dispatching click to:", clickTarget);
+    clickTarget.click();
+    clickTarget.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     return;
   }
 
-  // 3. Try buttons or clickable elements inside #agenq-root
-  const root = document.getElementById("agenq-root");
-  if (root) {
-    const btn = root.querySelector<HTMLElement>("button, [role='button'], img, div[tabindex]");
-    if (btn) { btn.click(); return; }
-    if (root.firstElementChild) {
-      (root.firstElementChild as HTMLElement).click();
+  console.warn("⚠️ Heuristics search did not locate candidate. Retrying with fallbacks...");
+
+  // Selectors fallback
+  const selectors = [
+    "[agenq-id] button",
+    "[agenq-id]",
+    "#agenq-root button",
+    "#agenq-root img",
+    "#agenq-root div",
+  ];
+  for (const sel of selectors) {
+    const el = document.querySelector<HTMLElement>(sel);
+    if (el) {
+      el.click();
+      el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      return;
     }
   }
 }
-
