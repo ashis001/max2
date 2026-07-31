@@ -3,8 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AgentProvider from "@/components/AgentProvider";
 import { ChatProvider } from "@/context/ChatContext";
-import RightChatPanel from "@/components/RightChatPanel";
-import PageWrapper from "@/components/PageWrapper";
 import PwaRegister from "@/components/PwaRegister";
 
 const inter = Inter({
@@ -37,11 +35,9 @@ export default function RootLayout({
     <html lang='en'>
       <body className="font-[Arial,sans-serif] antialiased">
         <ChatProvider>
-          <PageWrapper>
-            {children}
-            <AgentProvider />
-          </PageWrapper>
-          <RightChatPanel />
+          {children}
+          {/* AgenQAgent SDK + login guard */}
+          <AgentProvider />
         </ChatProvider>
         <PwaRegister />
       </body>

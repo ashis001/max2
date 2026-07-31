@@ -3,6 +3,24 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { stopSpeech, setGlobalMuteState } from "@/lib/google-tts";
 
+// Helper to open the real AgenQ SDK widget
+export function openAgenQWidget() {
+    const agenq = (window as any).AGENQ;
+    if (agenq && typeof agenq.open === "function") {
+        agenq.open();
+    } else if (agenq && typeof agenq.show === "function") {
+        agenq.show();
+    } else if (agenq && typeof agenq.toggle === "function") {
+        agenq.toggle();
+    } else {
+        // Fallback: click the AgenQ widget button if it exists in the DOM
+        const btn = document.querySelector<HTMLElement>(
+            "#agenq-root button, [data-agenq] button, .agenq-launcher, .agenq-chat-button"
+        );
+        if (btn) btn.click();
+    }
+}
+
 interface ChatContextType {
     isOpen: boolean;
     width: number;
@@ -56,28 +74,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const toggleChat = useCallback(() => {
-        setIsOpen((prev) => {
-            const next = !prev;
-            if (!next) {
-                stopSpeech();
-            }
-            return next;
-        });
+        // Trigger the real AgenQ SDK widget
+        openAgenQWidget();
     }, []);
 
     const openChat = useCallback((message?: string, silent: boolean = false) => {
-        if (!silent) stopSpeech();
-        if (message) setExternalMessage(silent ? `SILENT:${message}` : message);
-        setIsOpen(true);
+        // Trigger the real AgenQ SDK widget
+        openAgenQWidget();
     }, []);
 
     const closeChat = useCallback(() => {
         stopSpeech();
         setIsOpen(false);
-        setIsFloating(false); // Always reset to sidebar mode on close
+        setIsFloating(false);
         setIsExpanded(false);
-
-        // Ensure workflow is terminated when chat is closed
         setIsWorkflowActive(false);
         setIsWorkflowPaused(false);
     }, []);
@@ -132,4 +142,3 @@ export function useChat() {
     }
     return context;
 }
-
