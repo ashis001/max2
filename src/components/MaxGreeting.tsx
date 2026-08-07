@@ -58,6 +58,14 @@ export default function MaxGreeting() {
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-Nina-fade-in">
             <div className="bg-white rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.4)] max-w-[380px] w-full relative overflow-hidden animate-Nina-scale-in">
+                {/* Close Button */}
+                <button
+                    onClick={() => setIsVisible(false)}
+                    className="absolute top-4 right-4 z-30 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md border border-white/20 transition-all duration-200 shadow-lg hover:scale-110 active:scale-95 cursor-pointer"
+                    aria-label="Close modal"
+                >
+                    <X size={18} />
+                </button>
 
                 {/* Full-Bleed Hero Image */}
                 <div className="relative h-80 w-full">

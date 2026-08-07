@@ -9,6 +9,8 @@ export async function POST(request: Request) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
+    const origin = request.headers.get("origin") || request.headers.get("referer");
+
     const response = await fetch(
       `${process.env.AGENQ_BACKEND_URL}/runtime/token`,
       {
@@ -16,6 +18,7 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": "application/json",
           "X-API-Key": process.env.AGENQ_API_KEY || "",
+          ...(origin ? { Origin: origin } : {}),
         },
         body: JSON.stringify({
           customerCode: body.customerCode,
