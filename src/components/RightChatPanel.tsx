@@ -1924,6 +1924,29 @@ export default function RightChatPanel() {
                 return;
             }
 
+            if (OnboardingStep === 1) {
+                setOnboardingStep(2);
+                setIsTyping(false);
+                await streamMessage(`Got it. Started onboarding.`, "assistant");
+
+                setIsTyping(true);
+                await new Promise(r => setTimeout(r, 800));
+                setIsTyping(false);
+
+                setStatusIndicator({ text: "Reading company profile", emoji: "📄" });
+                await new Promise(r => setTimeout(r, 1500));
+
+                setStatusIndicator({ text: "Processing company details", emoji: "📄" });
+                await new Promise(r => setTimeout(r, 1500));
+
+                setStatusIndicator({ text: "Searching OneDrive for Northbridge Manufacturing Ltd.", emoji: "🔍" });
+                await new Promise(r => setTimeout(r, 2500));
+
+                setStatusIndicator(null); // Hide before next message
+                await streamMessage("I found additional data in OneDrive and recent emails. I need your permission to access it.\n\n[AUTHORIZE_BUTTON]", "assistant");
+                return;
+            }
+
             if (OnboardingStep === 2) {
                 if (query.toLowerCase().includes("authorize") || query.includes("yes") || query.includes("use it")) {
                     setOnboardingStep(3);
