@@ -3,17 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { stopSpeech, setGlobalMuteState } from "@/lib/google-tts";
 
-import { triggerAgenQOpen } from "@/components/AgenQAgent";
-
-// openAgenQWidget — called by every "Ask Nina" button and toggleChat in the app.
-// Delegates to triggerAgenQOpen which re-calls AGENQ.render() with initialState:"OPEN"
-export function openAgenQWidget() {
-    triggerAgenQOpen();
-}
-
-
-
-
 interface ChatContextType {
     isOpen: boolean;
     width: number;
@@ -67,20 +56,28 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const toggleChat = useCallback(() => {
-        // Trigger the real AgenQ SDK widget
-        openAgenQWidget();
+        setIsOpen((prev) => {
+            const next = !prev;
+            if (!next) {
+                stopSpeech();
+            }
+            return next;
+        });
     }, []);
 
     const openChat = useCallback((message?: string, silent: boolean = false) => {
-        // Trigger the real AgenQ SDK widget
-        openAgenQWidget();
+        if (!silent) stopSpeech();
+        if (message) setExternalMessage(silent ? `SILENT:${message}` : message);
+        setIsOpen(true);
     }, []);
 
     const closeChat = useCallback(() => {
         stopSpeech();
         setIsOpen(false);
-        setIsFloating(false);
+        setIsFloating(false); // Always reset to sidebar mode on close
         setIsExpanded(false);
+
+        // Ensure workflow is terminated when chat is closed
         setIsWorkflowActive(false);
         setIsWorkflowPaused(false);
     }, []);

@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import Agent from "@/components/Agent";
 import AgentProvider from "@/components/AgentProvider";
 import { ChatProvider } from "@/context/ChatContext";
+import RightChatPanel from "@/components/RightChatPanel";
+import PageWrapper from "@/components/PageWrapper";
 import PwaRegister from "@/components/PwaRegister";
 
 const inter = Inter({
@@ -35,9 +38,11 @@ export default function RootLayout({
     <html lang='en'>
       <body className="font-[Arial,sans-serif] antialiased">
         <ChatProvider>
-          {children}
-          {/* AgenQAgent SDK + login guard */}
-          <AgentProvider />
+          <PageWrapper>
+            {children}
+            <AgentProvider />
+          </PageWrapper>
+          <RightChatPanel />
         </ChatProvider>
         <PwaRegister />
       </body>

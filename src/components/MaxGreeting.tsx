@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Sparkles } from "lucide-react";
-import { useChat, openAgenQWidget } from "@/context/ChatContext";
+import { useChat } from "@/context/ChatContext";
 import { speakText } from "@/lib/google-tts";
 
 export default function MaxGreeting() {
-    const { isOpen, hasGreeted, setHasGreeted, isMuted, isWorkflowActive } = useChat();
+    const { openChat, isOpen, hasGreeted, setHasGreeted, isMuted, isWorkflowActive } = useChat();
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -58,14 +58,6 @@ export default function MaxGreeting() {
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-Nina-fade-in">
             <div className="bg-white rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.4)] max-w-[380px] w-full relative overflow-hidden animate-Nina-scale-in">
-                {/* Close Button */}
-                <button
-                    onClick={() => setIsVisible(false)}
-                    className="absolute top-4 right-4 z-30 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md border border-white/20 transition-all duration-200 shadow-lg hover:scale-110 active:scale-95 cursor-pointer"
-                    aria-label="Close modal"
-                >
-                    <X size={18} />
-                </button>
 
                 {/* Full-Bleed Hero Image */}
                 <div className="relative h-80 w-full">
@@ -109,8 +101,8 @@ export default function MaxGreeting() {
                     {/* Action Button */}
                     <button
                         onClick={() => {
+                            openChat("What would you like to do today? I can help you to onboard a new company, file a claim, or onboard a new policy provider.\n\nYou can talk to or you can type text here.");
                             setIsVisible(false);
-                            openAgenQWidget();
                         }}
                         className="group relative w-full overflow-hidden rounded-2xl bg-[#0a1e3b] px-6 py-4 transition-all duration-300 hover:bg-blue-900 hover:shadow-xl hover:shadow-blue-900/20 active:scale-[0.98] animate-Nina-pulse-gentle"
                     >
