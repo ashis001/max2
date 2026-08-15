@@ -137,16 +137,18 @@ export default function CorporateListingPage() {
 
                                 <div className="relative">
                                     <Link
+                                        id="btn-add-customer"
                                         href={`/corporate-customers/${newId}`}
                                         onClick={() => setActiveGuide(null)}
                                         className="group flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-[11px] font-black text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all duration-300 uppercase tracking-wider"
                                     >
                                         <Plus className="h-3.5 w-3.5 group-hover:rotate-90 transition-transform" />
-                                        Add New Customer
+                                        <span className="nav-label">Add New Customer</span>
                                     </Link>
 
                                     {activeGuide === "add_customer" && (
                                         <MaxGuidePointer
+                                            targetId="btn-add-customer"
                                             text="Click here to start your onboarding guide"
                                             targetUrl={`/corporate-customers/${newId}`}
                                         />

@@ -123,7 +123,7 @@ export function Sidebar() {
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   )}>
                   <item.icon className={clsx("h-4 w-4 transition-transform duration-300", isActive ? "scale-110" : "group-hover:scale-110")} />
-                  {item.label}
+                  <span className="nav-label">{item.label}</span>
                   {isActive && (
                     <div className="absolute left-0 top-0 h-full w-1 bg-blue-400 rounded-r-full" />
                   )}
@@ -141,6 +141,7 @@ export function Sidebar() {
                 <Link
                   key={item.label}
                   href={item.href}
+                  id={`nav-item-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                   onClick={() => setIsMobileOpen(false)}
                   className={clsx(
                     "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold transition-all duration-300 relative overflow-hidden",
@@ -150,7 +151,7 @@ export function Sidebar() {
                   )}
                 >
                   <item.icon className={clsx("h-4 w-4 transition-transform duration-300", isActive ? "scale-110" : "group-hover:scale-110")} />
-                  {item.label}
+                  <span className="nav-label">{item.label}</span>
                   {isActive && (
                     <div className="absolute left-0 top-0 h-full w-1 bg-blue-400 rounded-r-full" />
                   )}

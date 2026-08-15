@@ -584,7 +584,7 @@ export default function RightChatPanel() {
             isVoiceModeRef.current = false;
             setIsUserTranscribing(false);
             if (muteSpeakerOnStop) {
-                setIsMuted(true);
+                // setIsMuted(true);
                 stopSpeech();
             }
         } else {
@@ -821,7 +821,7 @@ export default function RightChatPanel() {
             if (!isInterruptedRef.current) {
                 await streamMessage(secondMsg, "assistant");
                 // Automatically turn speaker OFF after default greeting message finishes speaking
-                if (!isInterruptedRef.current) setIsMuted(true);
+                // if (!isInterruptedRef.current) setIsMuted(true);
             }
             greetingTimeoutRef.current = null;
         }, 1000);
@@ -897,7 +897,7 @@ export default function RightChatPanel() {
 
                     // Automatically turn speaker OFF after load-time greeting/message finishes speaking
                     // Only apply this to the standard greeting to prevent muting workflow instructions
-                    if (isStandardGreeting && !isSilent && !isInterruptedRef.current) setIsMuted(true);
+                    // if (isStandardGreeting && !isSilent && !isInterruptedRef.current) setIsMuted(true);
 
                     clearExternalMessage();
                 }, 500);
@@ -1029,7 +1029,7 @@ export default function RightChatPanel() {
             setIsVoiceMode(false);
             isVoiceModeRef.current = false;
             isSpeakingRef.current = false;
-            setIsMuted(true);
+            // setIsMuted(true);
             stopSpeech();
 
             if (silenceTimerRef.current) {
