@@ -14,14 +14,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Max Insurance - Corporate Admin Platform",
+  title: "Group Benefitz - Corporate Admin Platform",
   description:
     "Enterprise-grade SaaS Admin Platform for Corporate Benefits Management",
   manifest: "/manifest.json",
   icons: {
-    icon: "/max.png",
-    shortcut: "/max.png",
-    apple: "/max.png",
+    icon: "/max1.png",
+    shortcut: "/max1.png",
+    apple: "/max1.png",
   },
 };
 

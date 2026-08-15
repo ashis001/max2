@@ -41,6 +41,14 @@ import clsx from "clsx";
 import policyPlans from "@/lib/policy-plans.json";
 import policyPurchase from "@/lib/policy-purchase.json";
 import { MeetingReasonForm, CustomTimeInput } from "./MeetingWorkflow";
+import {
+    analyzeIntent,
+    isYesAnswer,
+    isNoAnswer,
+    CANONICAL_PHRASE,
+    type IntentId,
+    type IntentResult,
+} from "@/lib/intent-engine";
 
 interface PolicyPlan {
     plan_id: string;
@@ -93,7 +101,7 @@ export default function RightChatPanel() {
                             </div>
                             <div>
                                 <h4 className="text-[12px] font-bold text-slate-800">Connect OneDrive and Email</h4>
-                                <p className="text-[10px] text-slate-500 font-medium">Allow NINA to access customer-related folders and communications.</p>
+                                <p className="text-[10px] text-slate-500 font-medium">Allow CLOEY to access customer-related folders and communications.</p>
                             </div>
                         </div>
                         <button
@@ -311,6 +319,7 @@ export default function RightChatPanel() {
     const [isListening, setIsListening] = useState(false);
     const [isVoiceMode, setIsVoiceMode] = useState(false); // Persistent voice mode
     const [pendingContext, setPendingContext] = useState<string | null>(null); // NEW: Track conversational state
+    const [pendingClarification, setPendingClarification] = useState<{ intent: IntentId; label: string } | null>(null); // NEW: Intent engine clarification (human-like disambiguation)
     const [NinaStep, setNinaStep] = useState<number>(0); // NEW: Track Nina Storyboard progress
     const [PurchaseStep, setPurchaseStep] = useState<number>(0); // NEW: Track Policy Purchase progress
     const [OnboardingStep, setOnboardingStep] = useState<number>(0); // NEW: Track Onboarding Storyboard progress
@@ -343,6 +352,7 @@ export default function RightChatPanel() {
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const transcriptRef = useRef("");
     const isVoiceModeRef = useRef(false); // Using ref for immediate sync in callbacks
+    const stopRequestedRef = useRef(false); // True when we intentionally stop recognition (send/assistant pause)
     const isSpeakingRef = useRef(false);
     const isListeningRef = useRef(false);
     const [isTyping, setIsTyping] = useState(false);
@@ -390,20 +400,6 @@ export default function RightChatPanel() {
     useEffect(() => {
         isMutedRef.current = isMuted;
     }, [isMuted]);
-
-    useEffect(() => {
-        if (isListening && !isMuted) {
-            if (!isVoiceMode) {
-                setIsVoiceMode(true);
-                isVoiceModeRef.current = true;
-            }
-        } else {
-            if (isVoiceMode) {
-                setIsVoiceMode(false);
-                isVoiceModeRef.current = false;
-            }
-        }
-    }, [isListening, isMuted, isVoiceMode]);
 
     useEffect(() => {
         isSpeakingRef.current = isSpeaking;
@@ -467,32 +463,65 @@ export default function RightChatPanel() {
 
                     if (silenceTimerRef.current) {
                         clearTimeout(silenceTimerRef.current);
+                        silenceTimerRef.current = null;
                     }
 
                     if (currentFullTranscript.trim()) {
                         setIsUserTranscribing(true);
                         silenceTimerRef.current = setTimeout(() => {
                             if (transcriptRef.current.trim()) {
+                                stopRequestedRef.current = true; // Pause mic until assistant finishes, then stream-complete restarts it
                                 handleSend(transcriptRef.current, "voice");
                                 transcriptRef.current = "";
                                 recognitionRef.current?.stop();
+                                silenceTimerRef.current = null;
                             }
                         }, 4000);
                     }
                 };
 
                 recognitionRef.current.onend = () => {
-                    setIsListening(false);
-                    isListeningRef.current = false;
-                    // If silenceTimerRef.current is still set, it means we stopped before the 2.5s timer fired
-                    // (e.g. manual stop or system timeout). In this case, we should send the transcript.
+                    // If voice mode was intentionally stopped (manual end, chat close, or pre-response pause),
+                    // do NOT auto-restart here.
+                    if (!isVoiceModeRef.current || stopRequestedRef.current) {
+                        stopRequestedRef.current = false;
+                        if (silenceTimerRef.current) {
+                            clearTimeout(silenceTimerRef.current);
+                            silenceTimerRef.current = null;
+                            if (transcriptRef.current.trim()) {
+                                handleSend(transcriptRef.current, "voice");
+                                transcriptRef.current = "";
+                            }
+                        }
+                        setIsListening(false);
+                        isListeningRef.current = false;
+                        return;
+                    }
+
+                    // Voice mode is still active but recognition ended on its own (Chrome ends "continuous"
+                    // recognition periodically / after silence). Send any pending transcript, then immediately
+                    // restart the mic so the call stays alive.
                     if (silenceTimerRef.current) {
                         clearTimeout(silenceTimerRef.current);
                         silenceTimerRef.current = null;
                         if (transcriptRef.current.trim()) {
+                            stopRequestedRef.current = true;
                             handleSend(transcriptRef.current, "voice");
                             transcriptRef.current = "";
+                            setIsListening(false);
+                            isListeningRef.current = false;
+                            return; // stream-complete will restart the mic after the response
                         }
+                    }
+
+                    try {
+                        transcriptRef.current = "";
+                        recognitionRef.current?.start();
+                        setIsListening(true);
+                        isListeningRef.current = true;
+                    } catch (e) {
+                        setIsListening(false);
+                        isListeningRef.current = false;
                     }
                 };
 
@@ -744,11 +773,17 @@ export default function RightChatPanel() {
         // Auto-reactivate mic if voice mode is active and not interrupted
         // Removed !isMuted check so voice input works even if assistant is quiet
         if (isVoiceModeRef.current && !isInterruptedRef.current) {
-            setTimeout(() => {
+            let attempts = 0;
+            const tryRestartMic = () => {
+                if (!isVoiceModeRef.current || isInterruptedRef.current) return;
+                if (isListeningRef.current) return;
+                // Wait for the assistant to finish speaking, then retry
+                if (isSpeakingRef.current && attempts < 40) {
+                    attempts++;
+                    setTimeout(tryRestartMic, 500);
+                    return;
+                }
                 try {
-                    // Prevent multiple starts - using refs to avoid stale state
-                    if (isListeningRef.current || isSpeakingRef.current) return;
-
                     transcriptRef.current = "";
                     setInputValue("");
                     recognitionRef.current?.start();
@@ -756,24 +791,14 @@ export default function RightChatPanel() {
                     isListeningRef.current = true;
                 } catch (err: any) {
                     console.error("Auto-mic start failed:", err);
-                    // Only retry if it's not a permission issue and was previously active
                     const isPermissionError = err.message?.includes('not-allowed') || err.name === 'NotAllowedError';
-                    if (isVoiceModeRef.current && !isPermissionError) {
-                        setTimeout(() => {
-                            try {
-                                if (!isListeningRef.current && !isSpeakingRef.current) {
-                                    recognitionRef.current?.start();
-                                    setIsListening(true);
-                                    isListeningRef.current = true;
-                                }
-                            } catch (e) {
-                                console.log("Retry also failed, keeping voice mode but mic inactive");
-                                // We don't force disable voice mode here to keep the UI state
-                            }
-                        }, 1500);
+                    if (isVoiceModeRef.current && !isPermissionError && attempts < 40) {
+                        attempts++;
+                        setTimeout(tryRestartMic, 800);
                     }
                 }
-            }, 1000); // Increased delay to 1000ms to allow audio device to fully release
+            };
+            setTimeout(tryRestartMic, 1000); // Increased delay to 1000ms to allow audio device to fully release
         }
         return activeStreamIdRef.current === id;
     };
@@ -813,8 +838,8 @@ export default function RightChatPanel() {
                 const secondMsg = "What would you like to do today? I can help you to onboard a new company, file a claim, or onboard a new policy provider.\n\nYou can talk to or you can type text here.";
 
                 const timer = setTimeout(async () => {
-                    const isStandardGreeting = externalMessage.toLowerCase().includes("hi, i’m Nina") ||
-                        externalMessage.toLowerCase().includes("hi, i'm Nina") ||
+                    const isStandardGreeting = externalMessage.toLowerCase().includes("hi, i’m Cloey") ||
+                        externalMessage.toLowerCase().includes("hi, i'm Cloey") ||
                         externalMessage.toLowerCase().includes("hi, i’m max") ||
                         externalMessage.toLowerCase().includes("hi, i'm max");
                     const isIntroQuestion = externalMessage.includes("What would you like to do today?");
@@ -828,7 +853,7 @@ export default function RightChatPanel() {
                     if (isIntroQuestion) {
                         const hiddenGreeting: Message = {
                             id: "0",
-                            text: "Hi, I'm **Nina**. Your Assistant. I can help you with anything",
+                            text: "Hi, I'm **Cloey**. Your Assistant. I can help you with anything",
                             sender: "assistant",
                             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                         };
@@ -884,7 +909,7 @@ export default function RightChatPanel() {
                 hasTriggeredGreetingRef.current = true;
                 const initialGreeting: Message = {
                     id: "1",
-                    text: "Hi, I'm **Nina**. Your Assistant. I can help you with anything",
+                    text: "Hi, I'm **Cloey**. Your Assistant. I can help you with anything",
                     sender: "assistant",
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 };
@@ -922,7 +947,7 @@ export default function RightChatPanel() {
         setMessages([
             {
                 id: "1",
-                text: "Hi, I'm **Nina**. Your Assistant. I can help you with anything",
+                text: "Hi, I'm **Cloey**. Your Assistant. I can help you with anything",
                 sender: "assistant",
                 timestamp: new Date().toLocaleTimeString([], {
                     hour: "2-digit",
@@ -935,6 +960,7 @@ export default function RightChatPanel() {
         setOnboardingStep(0);
         setMeetingStep(0);
         setPendingContext(null);
+        setPendingClarification(null);
         setInputValue("");
         setIsTyping(false);
         setIsUserTranscribing(false);
@@ -1017,6 +1043,7 @@ export default function RightChatPanel() {
             setOnboardingStep(0);
             setMeetingStep(0);
             setPendingContext(null);
+            setPendingClarification(null);
             setInputValue("");
             setIsTyping(false);
             setIsUserTranscribing(false);
@@ -1216,6 +1243,32 @@ export default function RightChatPanel() {
             const corporates = await fetchAllCorporates();
             const query = textToSend.toLowerCase().trim();
 
+            // --- INTENT ENGINE: "think" about what the user actually means ---
+            // Handles misspellings ("unboard"), paraphrases ("how to create new
+            // customer") and, when unsure, returns a clarification so we can ask.
+            const engineResult: IntentResult = analyzeIntent(query);
+
+            // --- INTENT ENGINE: handle a reply to a previous clarification ---
+            // If we asked "Did you mean you want to onboard a customer?" earlier,
+            // the user's yes/no here resolves it like a human conversation would.
+            if (pendingClarification && meetingStep === 0 && NinaStep === 0 && PurchaseStep === 0 && OnboardingStep === 0) {
+                const pc = pendingClarification;
+                setPendingClarification(null);
+                if (isYesAnswer(query)) {
+                    setIsTyping(false);
+                    // Re-run the handler with the canonical phrase so the normal
+                    // workflow code executes unchanged.
+                    handleSend(CANONICAL_PHRASE[pc.intent], "text");
+                    return;
+                } else if (isNoAnswer(query)) {
+                    setIsTyping(false);
+                    await streamMessage("No problem! Let me know what you'd like to do and I'll help you with it.", "assistant");
+                    return;
+                }
+                // If it was neither yes nor no, fall through so the engine can
+                // re-evaluate this new message normally.
+            }
+
             // --- STORYBOARD: Claude Meeting Booking Workflow ---
             const meetingTriggers = [
                 "talk to real person",
@@ -1228,7 +1281,8 @@ export default function RightChatPanel() {
                 "speak to a person",
                 "agent"
             ];
-            const isMeetingTrigger = meetingTriggers.some(keyword => query.includes(keyword));
+            const isMeetingTrigger = meetingTriggers.some(keyword => query.includes(keyword)) ||
+                (engineResult.decision === "route" && engineResult.intent === "talk_to_human");
 
             if (meetingStep > 0) {
                 if (meetingStep === 1) { // Yes / No choice
@@ -1346,7 +1400,7 @@ export default function RightChatPanel() {
                 "i want to claim",
                 "claim"
             ];
-            if (query.includes("claim") || query.includes("can you help me wiht that")) {
+            if (query.includes("claim") || query.includes("can you help me wiht that") || (engineResult.decision === "route" && engineResult.intent === "file_claim")) {
                 setNinaStep(1);
                 setPurchaseStep(0); // Ensure other workflows are closed
                 setIsTyping(false);
@@ -1356,7 +1410,8 @@ export default function RightChatPanel() {
 
             // --- TRIGGER: Nina PURCHASE FLOW ---
             const purchaseKeywords = policyPurchase.prompts.trigger_keywords;
-            const isPurchaseQuery = purchaseKeywords.some((keyword: string) => query.includes(keyword));
+            const isPurchaseQuery = purchaseKeywords.some((keyword: string) => query.includes(keyword)) ||
+                (engineResult.decision === "route" && engineResult.intent === "buy_policy");
             if (isPurchaseQuery) {
                 setPurchaseStep(1);
                 setNinaStep(0); // Ensure other workflows are closed
@@ -1628,7 +1683,7 @@ export default function RightChatPanel() {
 
             if (query === "hi" || query === "hello") {
                 setIsTyping(false);
-                await streamMessage("Hi I am Nina, I am here to assist you.", "assistant");
+                await streamMessage("Hi I am Cloey, I am here to assist you.", "assistant");
                 return;
             }
 
@@ -1657,7 +1712,8 @@ export default function RightChatPanel() {
 
             const isClaimQuery =
                 query.includes("claim") &&
-                (query.includes("how to") || query.includes("insurance") || query.includes("policy") || query.includes("medical"));
+                (query.includes("how to") || query.includes("insurance") || query.includes("policy") || query.includes("medical")) ||
+                (engineResult.decision === "route" && engineResult.intent === "file_claim");
 
             if (isClaimQuery) {
                 if (isInterruptedRef.current) return;
@@ -1681,11 +1737,12 @@ export default function RightChatPanel() {
             // --- POLICY COMPARISON LOGIC ---
             const comparisonKeywords = policyPlans.prompts.comparison_keywords;
             const isPolicyComparisonQuery = comparisonKeywords.some((keyword: string) => query.includes(keyword)) ||
-                (query.includes("policy") && (query.includes("compare") || query.includes("plans") || query.includes("bronze") || query.includes("silver") || query.includes("gold")));
+                (query.includes("policy") && (query.includes("compare") || query.includes("plans") || query.includes("bronze") || query.includes("silver") || query.includes("gold"))) ||
+                (engineResult.decision === "route" && engineResult.intent === "compare_plans");
 
             const isSinglePlanQuery = (Object.keys(policyPlans.prompts.plan_specific) as (keyof typeof policyPlans.prompts.plan_specific)[]).some((plan) =>
                 policyPlans.prompts.plan_specific[plan].some((keyword: string) => query.includes(keyword))
-            );
+            ) || (engineResult.decision === "route" && engineResult.intent === "plan_details");
 
             if (isPolicyComparisonQuery) {
                 if (isInterruptedRef.current) return;
@@ -1834,7 +1891,7 @@ export default function RightChatPanel() {
                 }
             }
 
-            if (query.includes("recommend") || query.includes("which plan") || query.includes("what plan") || query.includes("choose")) {
+            if (query.includes("recommend") || query.includes("which plan") || query.includes("what plan") || query.includes("choose") || (engineResult.decision === "route" && engineResult.intent === "recommend_plan")) {
                 if (isInterruptedRef.current) return;
                 setIsTyping(false);
 
@@ -1905,7 +1962,7 @@ export default function RightChatPanel() {
                 return;
             }
 
-            if (query.includes("sold a new group insurance deal") || query.includes("northbridge") || (query.includes("set up") && query.includes("customer onboarding")) || query.includes("onboarding_query") || query.includes("onboarding") || query.includes("onboard")) {
+            if (query.includes("sold a new group insurance deal") || query.includes("northbridge") || (query.includes("set up") && query.includes("customer onboarding")) || query.includes("onboarding_query") || query.includes("onboarding") || query.includes("onboard") || (engineResult.decision === "route" && engineResult.intent === "onboard_customer")) {
                 if (isInterruptedRef.current) return;
                 setIsTyping(false);
                 const combinedIntro = "Got it. We can do these 2 ways.\n\n**Training Mode**: I walk you through each step, by using sample data.\n\n**Execution Mode**: I will complete the setup with actual data on your behalf, and then you just need to review it before submission.";
@@ -2089,6 +2146,25 @@ export default function RightChatPanel() {
                 }
             }
 
+            // --- INTENT ENGINE: human-like clarification ---
+            // We recognised the request but aren't fully sure (e.g. a misspelling
+            // like "unboard a customer"). Ask the user to confirm, exactly as a
+            // person would, before launching the workflow. This runs only after no
+            // other workflow or knowledge-base branch above has matched.
+            if (engineResult.decision === "clarify" && engineResult.label) {
+                setIsTyping(false);
+                await streamMessage(
+                    `Just to be sure — did you mean you want to **${engineResult.label}**? I can walk you through it.`,
+                    "assistant",
+                    [
+                        { label: "Yes", value: "clarify_yes" },
+                        { label: "No", value: "clarify_no" },
+                    ],
+                );
+                setPendingClarification({ intent: engineResult.intent as IntentId, label: engineResult.label });
+                return;
+            }
+
             if (
                 query.includes("how to") ||
                 query.includes("steps") ||
@@ -2236,8 +2312,8 @@ export default function RightChatPanel() {
                         )}>
                             <img
                                 alt='Voice Assistant'
-                                // src='https://cdnstaticfiles.blob.core.windows.net/img/1770617819808_cloye-agent-face.jpg'
-                                src="https://cdnstaticfiles.blob.core.windows.net/cdnstaticfiles/agent_images/nina.jpeg"
+                                src='https://cdnstaticfiles.blob.core.windows.net/img/1770617819808_cloye-agent-face.jpg'
+                                // src="https://cdnstaticfiles.blob.core.windows.net/cdnstaticfiles/agent_images/nina.jpeg"
                                 className='w-full h-full rounded-full object-cover object-top'
                             />
                         </div>
@@ -2265,7 +2341,7 @@ export default function RightChatPanel() {
                     </div>
                     <div>
                         <h3 className='text-[#1e3a5f] font-bold text-sm tracking-tight'>
-                            Nina
+                            Cloey
                         </h3>
                     </div>
                 </div>
@@ -2594,7 +2670,7 @@ export default function RightChatPanel() {
                                                             stopSpeech();
                                                             setIsMuted(false);
                                                             isMutedRef.current = false;
-                                                            
+
                                                             const userMsg: Message = {
                                                                 id: Date.now().toString(),
                                                                 text: "Training Mode (Sample Data)",
@@ -2603,7 +2679,7 @@ export default function RightChatPanel() {
                                                                 inputType: "text"
                                                             };
                                                             setMessages(prev => [...prev, userMsg]);
-                                                            
+
                                                             // Interactive Guide Logic
                                                             const navItem = document.getElementById("nav-item-corporate-customers");
                                                             if (navItem) {
@@ -2620,13 +2696,13 @@ export default function RightChatPanel() {
                                                                 // Fallback
                                                                 localStorage.setItem("max_guide_step", "add_customer");
                                                                 router.push("/corporate-customers");
-                                                                }
+                                                            }
                                                         } else if (action.value === "sample_claim") {
                                                             isInterruptedRef.current = true;
                                                             stopSpeech();
                                                             setIsMuted(false);
                                                             isMutedRef.current = false;
-                                                            
+
                                                             const userMsg: Message = {
                                                                 id: Date.now().toString(),
                                                                 text: "Training Mode (Sample Data)",
@@ -2635,7 +2711,7 @@ export default function RightChatPanel() {
                                                                 inputType: "text"
                                                             };
                                                             setMessages(prev => [...prev, userMsg]);
-                                                            
+
                                                             // Interactive Guide Logic for Claims
                                                             const navItem = document.getElementById("nav-item-claims");
                                                             if (navItem) {
@@ -2818,7 +2894,7 @@ export default function RightChatPanel() {
                             >
                                 <input
                                     type='text'
-                                    placeholder={isVoiceMode ? "Type here, or keep talking..." : "Ask Nina something..."}
+                                    placeholder={isVoiceMode ? "Type here, or keep talking..." : "Ask Cloey something..."}
                                     value={inputValue}
                                     onChange={(e) => {
                                         setInputValue(e.target.value);
@@ -2859,7 +2935,7 @@ export default function RightChatPanel() {
                             </form>
 
                             {/* Footer text */}
-                            <p className='text-[10px] text-gray-500 text-right mt-1 select-none font-medium'>Nina · AgenQ</p>
+                            <p className='text-[10px] text-gray-500 text-right mt-1 select-none font-medium'>Cloey · AgenQ</p>
                         </div>
                     </div></div></div>
 

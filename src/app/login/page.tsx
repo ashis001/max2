@@ -149,10 +149,10 @@ export default function LoginPage() {
           <div className="relative z-10 flex flex-col items-center">
             <div className="flex flex-col items-center gap-3 mb-6">
               <div className="w-20 h-20 flex items-center justify-center">
-                <img src="/max.png" alt="Max Logo" className="w-full h-full object-contain" />
+                <img src="/max1.png" alt="Group Benefitz Logo" className="w-full h-full object-contain" />
               </div>
               <div className="text-center">
-                <h1 className="text-3xl font-extrabold text-white tracking-tighter">Max Insurance</h1>
+                <h1 className="text-3xl font-extrabold text-white tracking-tighter">Group Benefitz</h1>
                 <p className="text-[12px] text-blue-300 font-bold uppercase tracking-[0.3em] mt-1">Enterprise Secured</p>
               </div>
             </div>

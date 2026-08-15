@@ -17,7 +17,7 @@ export default function MaxGreeting() {
         }
 
         const triggerSpeech = () => {
-            speakText("Hi, I’m Nina. Your Assistant. I can help you with anything");
+                    speakText("Hi, I’m Cloey. Your Assistant. I can help you with anything");
             window.removeEventListener('click', triggerSpeech);
             window.removeEventListener('keydown', triggerSpeech);
         };
@@ -30,7 +30,7 @@ export default function MaxGreeting() {
 
                 // If the user has already interacted, speak immediately
                 if (navigator.userActivation?.isActive) {
-                    speakText("Hi, I’m Nina. Your Assistant. I can help you with anything");
+            speakText("Hi, I’m Cloey. Your Assistant. I can help you with anything");
                 } else {
                     // Otherwise, wait for the first click or keypress
                     window.addEventListener('click', triggerSpeech);
@@ -70,9 +70,9 @@ export default function MaxGreeting() {
                 {/* Full-Bleed Hero Image */}
                 <div className="relative h-80 w-full">
                     <img
-                        alt="Nina AI"
-                        // src="https://cdnstaticfiles.blob.core.windows.net/img/1770617819808_cloye-agent-face.jpg"
-                        src="https://cdnstaticfiles.blob.core.windows.net/cdnstaticfiles/agent_images/nina.jpeg"
+                        alt="Cloey AI"
+                        src="https://cdnstaticfiles.blob.core.windows.net/img/1770617819808_cloye-agent-face.jpg"
+                        // src="https://cdnstaticfiles.blob.core.windows.net/cdnstaticfiles/agent_images/nina.jpeg"
                         className="w-full h-full object-cover object-top"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-white via-white/0 to-transparent" />
@@ -102,7 +102,7 @@ export default function MaxGreeting() {
                             AI Assistant
                         </p>
                         <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                            Hi, I’m <span className="text-blue-600">Nina</span>.
+                            Hi, I’m <span className="text-blue-600">Cloey</span>.
                         </h3>
                     </div>
 
@@ -116,7 +116,7 @@ export default function MaxGreeting() {
                     >
                         <div className="relative z-10 flex items-center justify-center gap-2 text-white font-bold tracking-wide">
                             <Sparkles size={18} className="text-blue-400 group-hover:animate-spin-slow" />
-                            <span>Ask Nina</span>
+                            <span>Ask Cloey</span>
                         </div>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
                     </button>

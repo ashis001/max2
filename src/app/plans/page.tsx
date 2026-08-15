@@ -393,7 +393,7 @@ export default function PlansPage() {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h4 className="font-black text-[#1e3a5f] mb-1">Need Help Choosing?</h4>
-                                        <p className="text-slate-500 text-sm font-medium">Chat with Nina to find the perfect plan for your needs</p>
+                                        <p className="text-slate-500 text-sm font-medium">Chat with Cloey to find the perfect plan for your needs</p>
                                     </div>
                                     <button
                                         onClick={() => openChat("Which plan is best for me?")}

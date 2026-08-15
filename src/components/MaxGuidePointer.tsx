@@ -218,7 +218,7 @@ export default function MaxGuidePointer({
         const prevY = posRef.current.y;
         
         // Determine dynamic label based on element type
-        let dynamicLabel = "Nina";
+        let dynamicLabel = "Cloey";
         if (currentEl) {
             const tag = currentEl.tagName.toUpperCase();
             const type = (currentEl as HTMLInputElement).type?.toLowerCase();
@@ -228,7 +228,7 @@ export default function MaxGuidePointer({
             } else if (tag === 'INPUT' || tag === 'TEXTAREA') {
                 dynamicLabel = "Typing";
             } else {
-                dynamicLabel = "Nina";
+                dynamicLabel = "Cloey";
             }
         }
         

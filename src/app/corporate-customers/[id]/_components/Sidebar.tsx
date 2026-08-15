@@ -58,7 +58,7 @@ export function Sidebar() {
           </button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 flex items-center justify-center">
-              <img src="/max.png" alt="Max Logo" className="w-full h-full object-contain scale-110" />
+              <img src="/max1.png" alt="Group Benefitz Logo" className="w-full h-full object-contain scale-110" />
             </div>
             <h1 className='text-sm font-black text-slate-900 uppercase tracking-tighter leading-none'>Max</h1>
           </div>
@@ -93,10 +93,10 @@ export function Sidebar() {
         <div className='flex h-20 items-center px-6 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white'>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 flex items-center justify-center -ml-1">
-              <img src="/max.png" alt="Max Logo" className="w-full h-full object-contain scale-110" />
+              <img src="/max1.png" alt="Group Benefitz Logo" className="w-full h-full object-contain scale-110" />
             </div>
             <div>
-              <h1 className='text-sm font-black text-slate-900 uppercase tracking-tighter leading-none'>Max Insurance</h1>
+              <h1 className='text-sm font-black text-slate-900 uppercase tracking-tighter leading-none'>Group Benefitz</h1>
             </div>
           </div>
         </div>
