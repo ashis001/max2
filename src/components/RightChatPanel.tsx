@@ -1163,6 +1163,8 @@ export default function RightChatPanel() {
         setInputValue("");
         setIsTyping(false);
         setIsUserTranscribing(false);
+        setIsWorkflowActive(false);
+        setActiveWorkflow(null);
         setInputMode("text");
 
         // Trigger the vocal greeting sequence
@@ -2636,10 +2638,12 @@ export default function RightChatPanel() {
                                         setInputValue("");
                                         setIsTyping(false);
                                         setIsUserTranscribing(false);
+                                        setIsWorkflowActive(false);
+                                        setActiveWorkflow(null);
                                         hasTriggeredGreetingRef.current = false;
                                         setIsHeaderMenuOpen(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 font-bold transition-colors flex items-center gap-2 border-b border-slate-100"
+                                    className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 border-b border-slate-100"
                                 >
                                     <Trash2 size={14} className="text-red-500" />
                                     <span>Clear</span>
@@ -2650,7 +2654,7 @@ export default function RightChatPanel() {
                                         setIsHeaderMenuOpen(false);
                                         fileInputRef.current?.click();
                                     }}
-                                    className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold transition-colors flex items-center gap-2"
+                                    className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2"
                                 >
                                     <Paperclip size={14} className="text-slate-400" />
                                     <span>Upload</span>
@@ -2659,13 +2663,13 @@ export default function RightChatPanel() {
                                     <button
                                         type="button"
                                         onClick={() => setSpeedSubmenuOpen(!speedSubmenuOpen)}
-                                        className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold transition-colors flex items-center justify-between gap-2"
+                                        className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-between gap-2"
                                     >
                                         <span className="flex items-center gap-2">
                                             <Gauge size={14} className="text-slate-400" />
                                             <span>Playback Speed</span>
                                         </span>
-                                        <span className="text-[10px] text-slate-400">{formatPlaybackSpeed(selectedSpeed)}</span>
+                                        <span className="text-[10px] text-slate-400">{`${selectedSpeed}x`}</span>
                                     </button>
                                     {speedSubmenuOpen && (
                                         <div className="absolute right-full top-0 mr-1 w-36 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-[110] animate-fade-in">
@@ -2683,12 +2687,12 @@ export default function RightChatPanel() {
                                                     className={clsx(
                                                         "w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between",
                                                         s === selectedSpeed
-                                                            ? "bg-purple-50 text-[#6d28ff] font-bold"
+                                                            ? "bg-[#1e3a5f]/10 text-[#1e3a5f] font-bold"
                                                             : "text-slate-600 hover:bg-slate-50"
                                                     )}
                                                 >
                                                     <span>{formatPlaybackSpeed(s)}</span>
-                                                    {s === selectedSpeed && <Check size={13} className="text-[#6d28ff]" />}
+                                                    {s === selectedSpeed && <Check size={13} className="text-[#1e3a5f]" />}
                                                 </button>
                                             ))}
                                         </div>
