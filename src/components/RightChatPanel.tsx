@@ -3191,7 +3191,7 @@ export default function RightChatPanel() {
 
                         <div className="px-4 pt-2 pb-3.5 flex flex-col gap-1.5">
                             {/* Global Workflow Progress Bar + Timer */}
-                            {activeWorkflow && !activeWorkflow.isCompleted && (
+                            {activeWorkflow && !activeWorkflow.isCompleted && isWorkflowActive && (
                                 <div className="flex items-center gap-2 mb-1 px-0.5">
                                     <div className="flex-1 bg-slate-200 h-0.5 rounded-full overflow-hidden relative">
                                         <div
