@@ -305,8 +305,22 @@ export function stopSpeech(): void {
 /**
  * Convenience function to speak text immediately.
  */
+// Dedupe guard: prevent the exact same text from being spoken twice in quick
+// succession (fixes a "Tier Tier ..." stutter where a message is triggered
+// twice — e.g. an effect re-running or the pause re-speak path).
+let lastSpokenText = "";
+let lastSpokenTs = 0;
+
 export async function speakText(text: string, options: TTSOptions = {}): Promise<void> {
     if (globalAudioMuted) return;
+
+    // Skip an immediate duplicate of the same sentence.
+    const now = Date.now();
+    if (text && text === lastSpokenText && now - lastSpokenTs < 1000) {
+        return;
+    }
+    lastSpokenText = text ?? "";
+    lastSpokenTs = now;
 
     // Use the global playback speed rate unless an explicit rate is provided.
     const desiredRate = options.speakingRate ?? currentSpeakingRate;

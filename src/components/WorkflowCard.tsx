@@ -38,7 +38,7 @@ function ActionBadge({ action }: { action?: string }) {
     const label = action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
     return (
         <span className={clsx(
-            "text-[10px] font-black tracking-wider px-2 py-0.5 rounded shadow-sm border shrink-0",
+            "text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm border shrink-0",
             action === "Click" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
             action === "Type" ? "bg-purple-50 text-purple-600 border-purple-200" :
             action === "Select" ? "bg-blue-50 text-blue-600 border-blue-200" :

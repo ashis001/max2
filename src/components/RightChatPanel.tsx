@@ -1136,8 +1136,15 @@ export default function RightChatPanel() {
         );
     }, []);
 
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        const el = scrollContainerRef.current;
+        if (el) {
+            el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+        } else {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
     };
 
     const resetChat = () => {
@@ -1254,7 +1261,7 @@ export default function RightChatPanel() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, isTyping, isUserTranscribing]);
+    }, [messages, isTyping, isUserTranscribing, activeWorkflow?.currentStepIndex, activeWorkflow?.isCompleted, activeWorkflow?.steps.length]);
 
     const handleMouseMove = useCallback(
         (e: MouseEvent) => {
@@ -2838,7 +2845,9 @@ export default function RightChatPanel() {
                         </button>
                     </div>
 
-                    <div className='flex-1 overflow-y-auto p-4 pb-6 space-y-2.5 custom-scrollbar'>
+                    <div className='flex-1 min-h-0 flex flex-col'>
+                        {/* Scrollable message list with bottom breathing room */}
+                        <div ref={scrollContainerRef} className='flex-1 overflow-y-auto p-4 pb-6 space-y-2.5 custom-scrollbar'>
                         {messages.map((msg) => (
                             <div
                                 key={msg.id}
@@ -3146,6 +3155,10 @@ export default function RightChatPanel() {
                             </div>
                         )}
                         <div ref={messagesEndRef} />
+                        {/* Bottom 20%: empty scrollable breathing room (continuous with messages) */}
+                        <div className='h-[20%] flex-shrink-0' aria-hidden="true" />
+                        </div>
+
                     </div>
 
                     {/* Input Section */}
