@@ -1,0 +1,168 @@
+{
+  "events": [
+    {
+      "event": "onTrainingOpen",
+      "sentence": "In this training, you will learn who the program is for, how to discuss pre-existing conditions, how clinics and benefits work, how to answer objections, and how to make one clear recommendation. Ask me a question at any time.",
+      "source": "itemSpeech COURSE[0] kind=overview"
+    },
+    {
+      "event": "onChapterNavigate",
+      "sentences": [
+        {
+          "kind": "overview",
+          "sentence": "Continue to Program"
+        },
+        {
+          "kind": "remember",
+          "sentence": "Check understanding"
+        },
+        {
+          "kind": "mcq",
+          "sentence": "Continue"
+        },
+        {
+          "kind": "text",
+          "sentence": "Continue"
+        },
+        {
+          "kind": "case",
+          "sentence": "Continue"
+        },
+        {
+          "kind": "practice",
+          "sentence": "Core training complete. You can finish now or enter a real-time Complete Executive Care brochure case."
+        }
+      ],
+      "source": "handleNext text based on COURSE[current].kind"
+    },
+    {
+      "event": "onMCQSelect",
+      "sentences": [
+        {
+          "status": "correct",
+          "sentence": "Correct feedback text (option[3])"
+        },
+        {
+          "status": "incorrect first attempt",
+          "sentence": "Try once more feedback (option[3])"
+        },
+        {
+          "status": "incorrect second attempt",
+          "sentence": "Here's the answer feedback (correct option[3])"
+        }
+      ],
+      "source": "handleOptionSelect based on isCorrect and attempts"
+    },
+    {
+      "event": "onTextReveal",
+      "sentence": "Compare your response with this given answer. {item.model}"
+    },
+    "source": "handleTextReveal"
+  ],
+  {
+    "event": "onCloeyQuickQuestion",
+    "sentences": [
+      {
+        "question": "What does the annual assessment include?",
+        "answer": "Cloey's answer: [QA answer] source: Group Benefitz predefined Q&A map"
+      },
+      {
+        "question": "How does clinic choice affect services?",
+        "answer": "Cloey's answer: [QA answer] source: Group Benefitz predefined Q&A map"
+      },
+      {
+        "question": "What expedited diagnostics are available?",
+        "answer": "Cloey's answer: [QA answer] source: Group Benefitz predefined Q&A map"
+      },
+      {
+        "question": "How does Global Medical Benefit work?",
+        "answer": "Cloey's answer: [QA answer] source: Group Benefitz predefined Q&A map"
+      },
+      {
+        "question": "What are the pre-existing rules?",
+        "answer": "Cloey's answer: [QA answer] source: Group Benefitz predefined Q&A map"
+      },
+      {
+        "question": "What are the plans and monthly prices?",
+        "answer": "Cloey's answer: [QA answer] source: Group Benefitz predefined Q&A map"
+      }
+    ],
+    "source": "askCloey function fuzzy-match over QA.terms"
+  },
+  {
+    "event": "onSimulationExchange",
+    "sentences": [
+      {
+        "exchange": "Exchange 1 – Explain the program",
+        "question": "The buyer asks, \"What exactly are we buying?\" Write your answer.",
+        "model": "Complete Executive Care combines an annual Executive Health Assessment or designated Whole-Body MRI, expedited diagnostics and expert review, eligible planned global treatment, Executive Travel and year-round wellness support."
+      },
+      {
+        "exchange": "Exchange 2 – Select the diagnostic package",
+        "question": "The client chooses RegeneraLife and wants the Full Executive Health Assessment, Enhanced Full Cardiac and Neurodegenerative Disease Screening. Which option matches?",
+        "options": ["Option A with a $4,000 additional deductible (correct)", "Option B with a $6,000 additional deductible", "Option C is mandatory for every RegeneraLife client"]
+      },
+      {
+        "exchange": "Exchange 3 – Handle the pre-existing question",
+        "question": "The proposed member says, \"My prior condition is covered immediately because there was no questionnaire, correct?\"",
+        "options": ["Correct. No questionnaire means immediate coverage (false)", "No. The Global Medical pre-existing provision excludes it for the first 36 months. Limited coverage may apply later under the current policy, and I cannot decide whether your condition qualifies (correct)", "The same limitation applies to every wellness service (false)"]
+      },
+      {
+        "exchange": "Exchange 4 – Recommend the funding structure",
+        "model": "Executive Flex matches that approach: the company pays 100% of Single and each executive may upgrade to Couple or Family and pay the difference through payroll deduction, using a Health Spending Account where applicable."
+      },
+      {
+        "exchange": "Exchange 5 – Advance the conversation",
+        "model": "I will confirm eligibility, clinic availability and current approved terms for both executives, then return with one recommendation showing the clinic pathway, coverage tier, Executive Flex structure, monthly premium, applicable deductibles, family rules and pre-existing wording. Can we book a time to make the decision?"
+      }
+    ],
+    "source": "FINAL_ROUNDS loop with bindFinalRound speak calls"
+  },
+  {
+    "event": "onBrochureCaseComplete",
+    "sentence": "Brochure case complete. You applied eligibility, clinic choice, pre-existing wording and the matching plan structure."
+  },
+  "source": "renderDebrief speak call"
+},
+{
+  "event": "onDebriefReturn",
+  "sentence": "Return to modules"
+},
+"source": "closeTraining / handleNext when showDebrief"
+},
+{
+  "event": "onVoiceToggle",
+  "sentences": [
+    {
+      "state": "unmuted",
+      "sentence": "Hear"
+    },
+    {
+      "state": "muted",
+      "sentence": "Voice is muted"
+    }
+  ],
+  "source": "voiceToggle onClick toggles muted state and calls stopVoice / speak"
+},
+{
+  "event": "onModuleSelect",
+  "sentences": [
+    {
+      "module": "why",
+      "sentence": "Guided learning – Why Sell Corporate Private Health"
+    },
+    {
+      "module": "how",
+      "sentence": "Guided certification – How to Sell Corporate Private Health"
+    },
+    {
+      "module": "software",
+      "sentence": "Software Training / TPA Product Guide"
+    },
+    {
+      "module": "policy",
+      "sentence": "On demand – Policy Explorer"
+    }
+  ],
+  "source": "setSelectedModule state change; preview updates; handlePreviewAction"
+}

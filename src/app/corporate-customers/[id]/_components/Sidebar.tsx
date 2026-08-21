@@ -14,6 +14,7 @@ import {
   Shield,
   Settings,
   HelpCircle,
+  GraduationCap,
   LogOut,
   FileText,
   Menu,
@@ -37,7 +38,7 @@ const NAV_ITEMS = [
 
 const SECONDARY_NAV = [
   { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Help Center", href: "/help-center", icon: HelpCircle },
+  { label: "Training Center", href: "/training-center", icon: GraduationCap },
 ];
 
 export function Sidebar() {
